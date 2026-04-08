@@ -1,0 +1,80 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: api-ksentinel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: api_ksentinel
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d api_ksentinel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - api-ksentinel-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: api-ksentinel:latest
+    container_name: api-ksentinel-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/api_ksentinel
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      # Security
+      JASYPT_PASSWORD: ${JASYPT_PASSWORD:-changeme-in-production}
+      MONITORING_SECURITY_USERNAME: ${APP_USERNAME:-admin}
+      MONITORING_SECURITY_PASSWORD: ${APP_PASSWORD:-admin123}
+
+      # Mail (optional)
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
+
+      # Slack (optional)
+      MONITORING_SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+
+      # JVM
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseContainerSupport"
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u ${APP_USERNAME:-admin}:${APP_PASSWORD:-admin123} http://localhost:8080/api/dashboard || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - api-ksentinel-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  api-ksentinel-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
