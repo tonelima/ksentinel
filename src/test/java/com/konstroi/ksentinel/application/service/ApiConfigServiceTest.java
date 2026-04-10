@@ -7,6 +7,7 @@ import com.konstroi.ksentinel.domain.model.HttpMethod;
 import com.konstroi.ksentinel.domain.repository.ApiConfigRepository;
 import com.konstroi.ksentinel.domain.repository.CompanyRepository;
 import com.konstroi.ksentinel.exception.ApiConfigNotFoundException;
+import com.konstroi.ksentinel.infrastructure.security.CurrentUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ class ApiConfigServiceTest {
     @Mock ApiConfigRepository repository;
     @Mock CompanyRepository companyRepository;
     @Mock SchedulerService schedulerService;
+    @Mock CurrentUserService currentUserService;
 
     @InjectMocks ApiConfigService service;
 
@@ -35,6 +37,7 @@ class ApiConfigServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(currentUserService.currentUserId()).thenReturn(10L);
         sampleCompany = Company.builder()
                 .id(1L)
                 .name("ACME")
@@ -55,7 +58,7 @@ class ApiConfigServiceTest {
 
     @Test
     void findAll_returnsAllConfigs() {
-        when(repository.findAllWithDetails()).thenReturn(List.of(sampleConfig));
+        when(repository.findAllWithDetailsByUserId(10L)).thenReturn(List.of(sampleConfig));
 
         List<ApiConfig> result = service.findAll();
 
@@ -65,7 +68,7 @@ class ApiConfigServiceTest {
 
     @Test
     void findById_existingId_returnsConfig() {
-        when(repository.findByIdWithDetails(1L)).thenReturn(Optional.of(sampleConfig));
+        when(repository.findByIdWithDetailsAndUserId(1L, 10L)).thenReturn(Optional.of(sampleConfig));
 
         ApiConfig result = service.findById(1L);
 
@@ -74,7 +77,7 @@ class ApiConfigServiceTest {
 
     @Test
     void findById_nonExistingId_throwsException() {
-        when(repository.findByIdWithDetails(99L)).thenReturn(Optional.empty());
+        when(repository.findByIdWithDetailsAndUserId(99L, 10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(99L))
                 .isInstanceOf(ApiConfigNotFoundException.class)
@@ -95,7 +98,7 @@ class ApiConfigServiceTest {
                 .consecutiveFailures(0)
                 .build();
 
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(sampleCompany));
+        when(companyRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(sampleCompany));
         when(repository.save(any())).thenReturn(incoming.toBuilder().id(2L).build());
 
         ApiConfig result = service.create(incoming);
@@ -118,7 +121,7 @@ class ApiConfigServiceTest {
                 .consecutiveFailures(0)
                 .build();
 
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(sampleCompany));
+        when(companyRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(sampleCompany));
         when(repository.save(any())).thenReturn(incoming.toBuilder().id(3L).build());
 
         service.create(incoming);
@@ -128,7 +131,7 @@ class ApiConfigServiceTest {
 
     @Test
     void delete_existingConfig_cancelsScheduleAndDeletes() {
-        when(repository.findByIdWithDetails(1L)).thenReturn(Optional.of(sampleConfig));
+        when(repository.findByIdWithDetailsAndUserId(1L, 10L)).thenReturn(Optional.of(sampleConfig));
 
         service.delete(1L);
 
@@ -138,7 +141,7 @@ class ApiConfigServiceTest {
 
     @Test
     void toggleEnabled_enabledToDisabled_cancelsSchedule() {
-        when(repository.findByIdWithDetails(1L)).thenReturn(Optional.of(sampleConfig));
+        when(repository.findByIdWithDetailsAndUserId(1L, 10L)).thenReturn(Optional.of(sampleConfig));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ApiConfig result = service.toggleEnabled(1L);

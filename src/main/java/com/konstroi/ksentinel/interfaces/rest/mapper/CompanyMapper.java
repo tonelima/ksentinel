@@ -13,6 +13,7 @@ public interface CompanyMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "apiConfigs", ignore = true)
+    @Mapping(target = "user", ignore = true)
     Company toEntity(CompanyRequest request);
 
     CompanyResponse toResponse(Company company);

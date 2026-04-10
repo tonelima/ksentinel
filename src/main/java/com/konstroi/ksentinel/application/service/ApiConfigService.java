@@ -7,6 +7,7 @@ import com.konstroi.ksentinel.domain.repository.ApiConfigRepository;
 import com.konstroi.ksentinel.domain.repository.CompanyRepository;
 import com.konstroi.ksentinel.exception.ApiConfigNotFoundException;
 import com.konstroi.ksentinel.exception.CompanyNotFoundException;
+import com.konstroi.ksentinel.infrastructure.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,26 +23,28 @@ public class ApiConfigService {
     private final ApiConfigRepository repository;
     private final CompanyRepository companyRepository;
     private final SchedulerService schedulerService;
+    private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
     public List<ApiConfig> findAll() {
-        return repository.findAllWithDetails();
+        return repository.findAllWithDetailsByUserId(currentUserService.currentUserId());
     }
 
     @Transactional(readOnly = true)
     public List<ApiConfig> findAll(Long companyId) {
+        Long userId = currentUserService.currentUserId();
         if (companyId == null) {
-            return repository.findAllWithDetails();
+            return repository.findAllWithDetailsByUserId(userId);
         }
-        return repository.findAllByCompanyId(companyId).stream()
-                .map(config -> repository.findByIdWithDetails(config.getId())
+        return repository.findAllByCompanyIdAndCompanyUserId(companyId, userId).stream()
+                .map(config -> repository.findByIdWithDetailsAndUserId(config.getId(), userId)
                         .orElseThrow(() -> new ApiConfigNotFoundException(config.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ApiConfig findById(Long id) {
-        return repository.findByIdWithDetails(id)
+        return repository.findByIdWithDetailsAndUserId(id, currentUserService.currentUserId())
                 .orElseThrow(() -> new ApiConfigNotFoundException(id));
     }
 
@@ -143,7 +146,7 @@ public class ApiConfigService {
         if (company == null || company.getId() == null) {
             throw new IllegalArgumentException("Company is required");
         }
-        return companyRepository.findById(company.getId())
+        return companyRepository.findByIdAndUserId(company.getId(), currentUserService.currentUserId())
                 .orElseThrow(() -> new CompanyNotFoundException(company.getId()));
     }
 }

@@ -28,11 +28,37 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+if [ -z "${FRONTEND_CONTEXT:-}" ]; then
+  while IFS='=' read -r key value; do
+    if [ "$key" = "FRONTEND_CONTEXT" ]; then
+      FRONTEND_CONTEXT="$value"
+      break
+    fi
+  done < "$ENV_FILE"
+fi
+FRONTEND_CONTEXT="${FRONTEND_CONTEXT:-../KSentinel-Web}"
+
 if [ -d ".git" ]; then
   echo "Updating source from branch $BRANCH..."
   git fetch origin "$BRANCH"
   git checkout "$BRANCH"
   git pull --ff-only origin "$BRANCH"
+fi
+
+if [ ! -f "$FRONTEND_CONTEXT/package.json" ]; then
+  echo "Frontend project not found at $FRONTEND_CONTEXT."
+  echo "Clone KSentinel-Web next to this project or set FRONTEND_CONTEXT in $ENV_FILE."
+  exit 1
+fi
+
+if [ -d "$FRONTEND_CONTEXT/.git" ]; then
+  echo "Updating frontend source from branch $BRANCH..."
+  (
+    cd "$FRONTEND_CONTEXT"
+    git fetch origin "$BRANCH"
+    git checkout "$BRANCH"
+    git pull --ff-only origin "$BRANCH"
+  )
 fi
 
 echo "Building and starting KSentinel..."
@@ -47,3 +73,6 @@ echo
 echo "Deployment finished."
 echo "App logs:"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs app --tail 50
+echo
+echo "Web logs:"
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs web --tail 50

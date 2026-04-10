@@ -6,6 +6,8 @@ import com.konstroi.ksentinel.domain.model.MonitoringResult;
 import com.konstroi.ksentinel.domain.model.MonitoringStatus;
 import com.konstroi.ksentinel.domain.repository.ApiConfigRepository;
 import com.konstroi.ksentinel.domain.repository.MonitoringResultRepository;
+import com.konstroi.ksentinel.exception.ApiConfigNotFoundException;
+import com.konstroi.ksentinel.infrastructure.security.CurrentUserService;
 import com.konstroi.ksentinel.infrastructure.validation.ValidatorChain;
 import com.konstroi.ksentinel.infrastructure.validation.ValidationResult;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class MonitoringService {
     private final ApiConfigRepository configRepository;
     private final ValidatorChain validatorChain;
     private final AlertService alertService;
+    private final CurrentUserService currentUserService;
 
     @Transactional
     public MonitoringResult check(ApiConfig config) {
@@ -48,6 +51,8 @@ public class MonitoringService {
 
     @Transactional(readOnly = true)
     public Page<MonitoringResult> findByConfigId(Long configId, Pageable pageable) {
+        configRepository.findByIdWithDetailsAndUserId(configId, currentUserService.currentUserId())
+                .orElseThrow(() -> new ApiConfigNotFoundException(configId));
         return resultRepository.findByApiConfigIdOrderByCheckedAtDesc(configId, pageable);
     }
 

@@ -47,6 +47,11 @@ monitoring:
   alert:
     consecutive-failures-threshold: 3
 
+security:
+  jwt:
+    secret: ${JWT_SECRET:${JASYPT_PASSWORD:change-this-secret}}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+
 resilience4j:
   circuitbreaker:
     instances:

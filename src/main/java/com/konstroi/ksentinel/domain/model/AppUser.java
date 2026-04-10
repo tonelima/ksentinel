@@ -8,13 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "company")
+@Table(name = "app_user")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
-public class Company {
+public class AppUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,12 +23,11 @@ public class Company {
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 1024)
-    private String description;
+    @Column(nullable = false, unique = true, length = 255)
+    private String email;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private AppUser user;
+    @Column(nullable = false, name = "password_hash")
+    private String passwordHash;
 
     @Column(nullable = false, updatable = false)
     @Builder.Default
@@ -38,9 +37,9 @@ public class Company {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "company", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<ApiConfig> apiConfigs = new ArrayList<>();
+    private List<Company> companies = new ArrayList<>();
 
     @PreUpdate
     public void preUpdate() {

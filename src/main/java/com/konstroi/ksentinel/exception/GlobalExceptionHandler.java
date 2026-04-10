@@ -49,6 +49,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(DuplicateUserException.class)
+    ProblemDetail handleDuplicateUser(DuplicateUserException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("https://api-monitor/errors/user-duplicate"));
+        pd.setTitle("Duplicate User");
+        return pd;
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        pd.setType(URI.create("https://api-monitor/errors/invalid-credentials"));
+        pd.setTitle("Invalid Credentials");
+        return pd;
+    }
+
     @ExceptionHandler(AuthStrategyException.class)
     ProblemDetail handleAuthStrategy(AuthStrategyException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

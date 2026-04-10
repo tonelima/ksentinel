@@ -1,11 +1,13 @@
 package com.konstroi.ksentinel.application.service;
 
 import com.konstroi.ksentinel.domain.model.Company;
+import com.konstroi.ksentinel.domain.repository.AppUserRepository;
 import com.konstroi.ksentinel.domain.repository.ApiConfigRepository;
 import com.konstroi.ksentinel.domain.repository.CompanyRepository;
 import com.konstroi.ksentinel.exception.CompanyInUseException;
 import com.konstroi.ksentinel.exception.CompanyNotFoundException;
 import com.konstroi.ksentinel.exception.DuplicateCompanyException;
+import com.konstroi.ksentinel.infrastructure.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,28 +20,33 @@ public class CompanyService {
 
     private final CompanyRepository repository;
     private final ApiConfigRepository apiConfigRepository;
+    private final AppUserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
     public List<Company> findAll() {
-        return repository.findAll();
+        return repository.findAllByUserIdOrderByName(currentUserService.currentUserId());
     }
 
     @Transactional(readOnly = true)
     public Company findById(Long id) {
-        return repository.findById(id)
+        return repository.findByIdAndUserId(id, currentUserService.currentUserId())
                 .orElseThrow(() -> new CompanyNotFoundException(id));
     }
 
     @Transactional
     public Company create(Company company) {
-        validateUniqueName(company.getName(), null);
+        Long userId = currentUserService.currentUserId();
+        validateUniqueName(userId, company.getName(), null);
+        company.setUser(userRepository.getReferenceById(userId));
         return repository.save(company);
     }
 
     @Transactional
     public Company update(Long id, Company updated) {
+        Long userId = currentUserService.currentUserId();
         Company existing = findById(id);
-        validateUniqueName(updated.getName(), id);
+        validateUniqueName(userId, updated.getName(), id);
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
         return repository.save(existing);
@@ -48,16 +55,16 @@ public class CompanyService {
     @Transactional
     public void delete(Long id) {
         Company company = findById(id);
-        if (apiConfigRepository.existsByCompanyId(id)) {
+        if (apiConfigRepository.existsByCompanyIdAndCompanyUserId(id, currentUserService.currentUserId())) {
             throw new CompanyInUseException(id);
         }
         repository.delete(company);
     }
 
-    private void validateUniqueName(String name, Long idToIgnore) {
+    private void validateUniqueName(Long userId, String name, Long idToIgnore) {
         boolean exists = idToIgnore == null
-                ? repository.existsByNameIgnoreCase(name)
-                : repository.existsByNameIgnoreCaseAndIdNot(name, idToIgnore);
+                ? repository.existsByUserIdAndNameIgnoreCase(userId, name)
+                : repository.existsByUserIdAndNameIgnoreCaseAndIdNot(userId, name, idToIgnore);
         if (exists) {
             throw new DuplicateCompanyException(name);
         }
