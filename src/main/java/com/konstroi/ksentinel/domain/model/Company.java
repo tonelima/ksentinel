@@ -5,7 +5,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "company")
@@ -25,6 +27,12 @@ public class Company {
 
     @Column(length = 1024)
     private String description;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "company_notification_email", joinColumns = @JoinColumn(name = "company_id"))
+    @Column(name = "email", nullable = false, length = 255)
+    @Builder.Default
+    private Set<String> notificationEmails = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)

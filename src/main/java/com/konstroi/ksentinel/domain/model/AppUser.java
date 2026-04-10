@@ -29,6 +29,29 @@ public class AppUser {
     @Column(nullable = false, name = "password_hash")
     private String passwordHash;
 
+    @Column(name = "smtp_host", length = 255)
+    private String smtpHost;
+
+    @Column(name = "smtp_port")
+    private Integer smtpPort;
+
+    @Column(name = "smtp_username", length = 255)
+    private String smtpUsername;
+
+    @Column(name = "smtp_password", columnDefinition = "TEXT")
+    private String smtpPassword;
+
+    @Column(name = "smtp_from_email", length = 255)
+    private String smtpFromEmail;
+
+    @Column(name = "smtp_auth")
+    @Builder.Default
+    private Boolean smtpAuth = true;
+
+    @Column(name = "smtp_starttls")
+    @Builder.Default
+    private Boolean smtpStarttls = true;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

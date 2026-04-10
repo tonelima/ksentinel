@@ -42,6 +42,10 @@ public class ApiConfigRequest {
 
     private String alertWebhookUrl;
 
+    @Min(value = 0, message = "Notification delay must be zero or greater")
+    @Max(value = 1440, message = "Notification delay must be at most 1440 minutes")
+    private Integer notificationDelayMinutes = 0;
+
     @Size(max = 1024)
     private String description;
 

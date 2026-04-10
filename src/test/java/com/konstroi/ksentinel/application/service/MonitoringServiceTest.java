@@ -66,7 +66,7 @@ class MonitoringServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(MonitoringStatus.UP);
         assertThat(result.getHttpStatus()).isEqualTo(200);
-        verify(alertService).handleRecovery(any(), any());
+        verify(alertService).handleRecovery(any(), any(), eq(0));
     }
 
     @Test
@@ -79,7 +79,7 @@ class MonitoringServiceTest {
         MonitoringResult result = service.check(config);
 
         assertThat(result.getStatus()).isEqualTo(MonitoringStatus.TIMEOUT);
-        verify(alertService).handleFailure(any(), any());
+        verify(alertService).handleFailure(any(), any(), eq(0));
     }
 
     @Test
@@ -135,6 +135,6 @@ class MonitoringServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(MonitoringStatus.UP);
         assertThat(result.getHttpStatus()).isEqualTo(200);
-        verify(alertService).handleRecovery(any(), any());
+        verify(alertService).handleRecovery(any(), any(), eq(0));
     }
 }

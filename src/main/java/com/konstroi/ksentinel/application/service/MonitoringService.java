@@ -38,12 +38,13 @@ public class MonitoringService {
         MonitoringResult result = buildResult(config, response);
         MonitoringResult saved = resultRepository.save(result);
 
+        int previousConsecutiveFailures = config.getConsecutiveFailures() == null ? 0 : config.getConsecutiveFailures();
         updateConfigStatus(config, saved);
 
         if (!saved.isSuccess()) {
-            alertService.handleFailure(config, saved);
+            alertService.handleFailure(config, saved, previousConsecutiveFailures);
         } else {
-            alertService.handleRecovery(config, saved);
+            alertService.handleRecovery(config, saved, previousConsecutiveFailures);
         }
 
         return saved;

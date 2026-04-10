@@ -80,6 +80,7 @@ public class ApiConfigService {
         existing.setRequestBody(updated.getRequestBody());
         existing.setAlertEmail(updated.getAlertEmail());
         existing.setAlertWebhookUrl(updated.getAlertWebhookUrl());
+        existing.setNotificationDelayMinutes(updated.getNotificationDelayMinutes());
         existing.setDescription(updated.getDescription());
 
         if (updated.getCredential() != null) {

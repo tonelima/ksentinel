@@ -16,7 +16,9 @@ public interface ApiConfigRepository extends JpaRepository<ApiConfig, Long> {
     List<ApiConfig> findAllByCompanyIdAndCompanyUserId(Long companyId, Long userId);
 
     @Query("SELECT DISTINCT a FROM ApiConfig a " +
-            "LEFT JOIN FETCH a.company " +
+            "LEFT JOIN FETCH a.company c " +
+            "LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH c.notificationEmails " +
             "LEFT JOIN FETCH a.credential " +
             "LEFT JOIN FETCH a.validationRules " +
             "WHERE a.id = :id")
@@ -24,13 +26,17 @@ public interface ApiConfigRepository extends JpaRepository<ApiConfig, Long> {
 
     @Query("SELECT DISTINCT a FROM ApiConfig a " +
             "LEFT JOIN FETCH a.company c " +
+            "LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH c.notificationEmails " +
             "LEFT JOIN FETCH a.credential " +
             "LEFT JOIN FETCH a.validationRules " +
             "WHERE a.id = :id AND c.user.id = :userId")
     java.util.Optional<ApiConfig> findByIdWithDetailsAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
     @Query("SELECT DISTINCT a FROM ApiConfig a " +
-            "LEFT JOIN FETCH a.company " +
+            "LEFT JOIN FETCH a.company c " +
+            "LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH c.notificationEmails " +
             "LEFT JOIN FETCH a.credential " +
             "LEFT JOIN FETCH a.validationRules " +
             "ORDER BY a.name")
@@ -38,6 +44,8 @@ public interface ApiConfigRepository extends JpaRepository<ApiConfig, Long> {
 
     @Query("SELECT DISTINCT a FROM ApiConfig a " +
             "LEFT JOIN FETCH a.company c " +
+            "LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH c.notificationEmails " +
             "LEFT JOIN FETCH a.credential " +
             "LEFT JOIN FETCH a.validationRules " +
             "WHERE c.user.id = :userId " +

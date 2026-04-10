@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ public class CompanyService {
     public Company create(Company company) {
         Long userId = currentUserService.currentUserId();
         validateUniqueName(userId, company.getName(), null);
+        company.setNotificationEmails(normalizeEmails(company.getNotificationEmails()));
         company.setUser(userRepository.getReferenceById(userId));
         return repository.save(company);
     }
@@ -49,6 +53,7 @@ public class CompanyService {
         validateUniqueName(userId, updated.getName(), id);
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
+        existing.setNotificationEmails(normalizeEmails(updated.getNotificationEmails()));
         return repository.save(existing);
     }
 
@@ -68,5 +73,15 @@ public class CompanyService {
         if (exists) {
             throw new DuplicateCompanyException(name);
         }
+    }
+
+    private Set<String> normalizeEmails(Set<String> emails) {
+        if (emails == null) {
+            return new LinkedHashSet<>();
+        }
+        return emails.stream()
+                .filter(email -> email != null && !email.isBlank())
+                .map(email -> email.trim().toLowerCase(Locale.ROOT))
+                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
     }
 }

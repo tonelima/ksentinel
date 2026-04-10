@@ -1,5 +1,6 @@
 package com.konstroi.ksentinel.application.service;
 
+import com.konstroi.ksentinel.application.port.out.CredentialEncryptPort;
 import com.konstroi.ksentinel.domain.model.AppUser;
 import com.konstroi.ksentinel.domain.repository.AppUserRepository;
 import com.konstroi.ksentinel.exception.DuplicateUserException;
@@ -9,6 +10,8 @@ import com.konstroi.ksentinel.infrastructure.security.JwtService;
 import com.konstroi.ksentinel.interfaces.rest.dto.LoginRequest;
 import com.konstroi.ksentinel.interfaces.rest.dto.LoginResponse;
 import com.konstroi.ksentinel.interfaces.rest.dto.RegisterRequest;
+import com.konstroi.ksentinel.interfaces.rest.dto.SmtpSettingsRequest;
+import com.konstroi.ksentinel.interfaces.rest.dto.SmtpSettingsResponse;
 import com.konstroi.ksentinel.interfaces.rest.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +26,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CurrentUserService currentUserService;
+    private final CredentialEncryptPort encryptPort;
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -36,6 +40,7 @@ public class AuthService {
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .build();
+        applySmtpSettings(user, request.getSmtpSettings());
 
         return toResponse(userRepository.save(user));
     }
@@ -62,7 +67,46 @@ public class AuthService {
     }
 
     private UserResponse toResponse(AppUser user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail());
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                new SmtpSettingsResponse(
+                        user.getSmtpHost(),
+                        user.getSmtpPort(),
+                        user.getSmtpUsername(),
+                        user.getSmtpFromEmail(),
+                        user.getSmtpAuth(),
+                        user.getSmtpStarttls(),
+                        isSmtpConfigured(user)
+                )
+        );
+    }
+
+    private void applySmtpSettings(AppUser user, SmtpSettingsRequest settings) {
+        if (settings == null || settings.getHost() == null || settings.getHost().isBlank()) {
+            return;
+        }
+        user.setSmtpHost(settings.getHost().trim());
+        user.setSmtpPort(settings.getPort() != null ? settings.getPort() : 587);
+        user.setSmtpUsername(trimToNull(settings.getUsername()));
+        user.setSmtpPassword(encryptPort.encrypt(trimToNull(settings.getPassword())));
+        user.setSmtpFromEmail(trimToNull(settings.getFromEmail()));
+        user.setSmtpAuth(settings.getAuth() == null || settings.getAuth());
+        user.setSmtpStarttls(settings.getStarttls() == null || settings.getStarttls());
+    }
+
+    private boolean isSmtpConfigured(AppUser user) {
+        return user.getSmtpHost() != null
+                && !user.getSmtpHost().isBlank()
+                && user.getSmtpPort() != null;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private String normalizeEmail(String email) {

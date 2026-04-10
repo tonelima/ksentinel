@@ -25,51 +25,56 @@ class AlertServiceTest {
     @BeforeEach
     void setUp() {
         alertService = new AlertService(List.of(notificationPort));
-        // inject threshold via reflection
-        try {
-            var field = AlertService.class.getDeclaredField("failuresThreshold");
-            field.setAccessible(true);
-            field.set(alertService, 3);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
         config = ApiConfig.builder()
                 .id(1L).name("Test").url("https://test.com")
                 .httpMethod(HttpMethod.GET).intervalSeconds(60).timeoutSeconds(10)
                 .enabled(true).authType(AuthType.NONE).consecutiveFailures(0)
+                .notificationDelayMinutes(3)
                 .build();
     }
 
     @Test
-    void handleFailure_belowThreshold_doesNotNotify() {
+    void handleFailure_beforeDelay_doesNotNotify() {
         config.setConsecutiveFailures(2);
         MonitoringResult result = MonitoringResult.builder()
                 .apiConfig(config).status(MonitoringStatus.DOWN).build();
 
-        alertService.handleFailure(config, result);
+        alertService.handleFailure(config, result, 1);
 
         verify(notificationPort, never()).sendAlert(any(), any());
     }
 
     @Test
-    void handleFailure_atThreshold_sendsAlert() {
+    void handleFailure_atDelay_sendsAlert() {
         config.setConsecutiveFailures(3);
         MonitoringResult result = MonitoringResult.builder()
                 .apiConfig(config).status(MonitoringStatus.DOWN).build();
 
-        alertService.handleFailure(config, result);
+        alertService.handleFailure(config, result, 2);
+
+        verify(notificationPort).sendAlert(config, result);
+    }
+
+    @Test
+    void handleFailure_immediateDelay_sendsOnlyOnFirstFailure() {
+        config.setNotificationDelayMinutes(0);
+        config.setConsecutiveFailures(1);
+        MonitoringResult result = MonitoringResult.builder()
+                .apiConfig(config).status(MonitoringStatus.DOWN).build();
+
+        alertService.handleFailure(config, result, 0);
 
         verify(notificationPort).sendAlert(config, result);
     }
 
     @Test
     void handleRecovery_firstSuccess_sendsRecoveryAlert() {
-        config.setConsecutiveFailures(1);
+        config.setConsecutiveFailures(0);
         MonitoringResult result = MonitoringResult.builder()
                 .apiConfig(config).status(MonitoringStatus.UP).build();
 
-        alertService.handleRecovery(config, result);
+        alertService.handleRecovery(config, result, 1);
 
         verify(notificationPort).sendAlert(config, result);
     }
@@ -80,19 +85,19 @@ class AlertServiceTest {
         MonitoringResult result = MonitoringResult.builder()
                 .apiConfig(config).status(MonitoringStatus.UP).build();
 
-        alertService.handleRecovery(config, result);
+        alertService.handleRecovery(config, result, 0);
 
         verify(notificationPort, never()).sendAlert(any(), any());
     }
 
     @Test
     void handleFailure_notificationThrows_doesNotPropagateException() {
-        config.setConsecutiveFailures(5);
+        config.setConsecutiveFailures(3);
         MonitoringResult result = MonitoringResult.builder()
                 .apiConfig(config).status(MonitoringStatus.DOWN).build();
         doThrow(new RuntimeException("SMTP failure")).when(notificationPort).sendAlert(any(), any());
 
         // should not throw
-        alertService.handleFailure(config, result);
+        alertService.handleFailure(config, result, 2);
     }
 }

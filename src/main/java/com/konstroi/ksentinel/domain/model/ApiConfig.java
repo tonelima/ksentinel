@@ -63,6 +63,10 @@ public class ApiConfig {
     @Column(length = 2048)
     private String alertWebhookUrl;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer notificationDelayMinutes = 0;
+
     @Column(length = 1024)
     private String description;
 

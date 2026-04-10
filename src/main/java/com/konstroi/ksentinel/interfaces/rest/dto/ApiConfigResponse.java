@@ -21,6 +21,7 @@ public class ApiConfigResponse {
     private AuthType authType;
     private String alertEmail;
     private String alertWebhookUrl;
+    private Integer notificationDelayMinutes;
     private String description;
     private Integer consecutiveFailures;
     @JsonFormat(shape = JsonFormat.Shape.STRING)

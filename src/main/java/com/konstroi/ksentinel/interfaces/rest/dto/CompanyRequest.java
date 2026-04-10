@@ -2,7 +2,10 @@ package com.konstroi.ksentinel.interfaces.rest.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CompanyRequest {
@@ -13,4 +16,6 @@ public class CompanyRequest {
 
     @Size(max = 1024)
     private String description;
+
+    private List<@Email(message = "Invalid notification email") @Size(max = 255) String> notificationEmails;
 }
