@@ -61,7 +61,7 @@ services:
 
   web:
     build:
-      context: ${FRONTEND_CONTEXT:-../KSentinel-Web}
+      context: ${FRONTEND_CONTEXT:-../ksentinel-web}
       dockerfile_inline: |
         FROM node:20-alpine AS builder
         WORKDIR /app
